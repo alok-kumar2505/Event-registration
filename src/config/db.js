@@ -1,27 +1,14 @@
 import mongoose from 'mongoose';
 
-let connectPromise;
+export function connectDB() {
+  const mongoURI = process.env.MONGODB_URI;
 
-export async function connectDatabase(uri) {
-  if (!uri) {
-    throw new Error('MONGODB_URI is required');
+  if (!mongoURI) {
+    throw new Error('MONGODB_URI is not defined in the environment variables');
   }
 
-  if (mongoose.connection.readyState === 1) {
-    return mongoose.connection;
-  }
-
-  if (!connectPromise) {
-    connectPromise = mongoose.connect(uri);
-  }
-
-  return connectPromise;
+  mongoose.connect(mongoURI)
+  .then(() => console.log("DataBase Connected"))
+  .catch(err => console.log(err));
 }
 
-export async function disconnectDatabase() {
-  connectPromise = undefined;
-
-  if (mongoose.connection.readyState !== 0) {
-    await mongoose.disconnect();
-  }
-}
