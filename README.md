@@ -1,6 +1,6 @@
 # Events API
 
-Simple Node.js and Express API for managing events and registrations using an MVC structure.
+Simple Node.js and Express API for managing events and registrations using an MVC structure with MongoDB Atlas.
 
 ## Setup
 
@@ -15,7 +15,7 @@ Development mode:
 npm run dev
 ```
 
-The server reads `PORT` from [/.env](/Users/alokkumar/Desktop/Project%202/.env). If it is not set, it falls back to `3000`.
+The server reads `PORT` and `MONGODB_URI` from [/.env](/Users/alokkumar/Desktop/Project%202/.env). `MONGODB_URI` should be your MongoDB Atlas connection string.
 
 ## Base URL
 
@@ -158,5 +158,5 @@ Error response: `404 Not Found`
 
 ## Notes
 
-- Data is stored in memory, so it resets when the server restarts.
+- Data is stored in MongoDB Atlas, so it persists across restarts.
 - Registration emails are unique per event.

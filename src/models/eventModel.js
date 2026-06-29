@@ -1,34 +1,91 @@
-import { randomUUID } from 'node:crypto';
+import mongoose from 'mongoose';
 
-const events = [];
-const registrations = new Map();
+const eventSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true, trim: true },
+    date: { type: String, required: true, trim: true },
+    location: { type: String, required: true, trim: true },
+    createdAt: { type: Date, default: Date.now },
+  },
+  {
+    versionKey: false,
+    toJSON: {
+      virtuals: true,
+      transform: (_doc, ret) => {
+        ret.id = ret._id.toString();
+        delete ret._id;
+        return ret;
+      },
+    },
+  },
+);
 
-export function createEvent({ title, date, location }) {
-  const event = {
-    id: randomUUID(),
-    title,
-    date,
-    location,
-    createdAt: new Date().toISOString(),
-  };
+const registrationSchema = new mongoose.Schema(
+  {
+    eventId: { type: mongoose.Schema.Types.ObjectId, ref: 'Event', required: true, index: true },
+    name: { type: String, required: true, trim: true },
+    email: { type: String, required: true, trim: true, lowercase: true },
+    registeredAt: { type: Date, default: Date.now },
+  },
+  {
+    versionKey: false,
+    toJSON: {
+      virtuals: true,
+      transform: (_doc, ret) => {
+        ret.id = ret._id.toString();
+        ret.eventId = ret.eventId.toString();
+        delete ret._id;
+        return ret;
+      },
+    },
+  },
+);
 
-  events.push(event);
-  registrations.set(event.id, []);
+registrationSchema.index({ eventId: 1, email: 1 }, { unique: true });
 
-  return event;
+const Event = mongoose.models.Event || mongoose.model('Event', eventSchema);
+const Registration = mongoose.models.Registration || mongoose.model('Registration', registrationSchema);
+
+function isValidObjectId(id) {
+  return mongoose.Types.ObjectId.isValid(id);
 }
 
-export function listEvents({ date, location } = {}) {
-  return events.filter((event) => {
-    const matchesDate = !date || event.date === date;
-    const matchesLocation = !location || event.location.toLowerCase().includes(String(location).toLowerCase());
+function mapDuplicateKeyError(error) {
+  if (error?.code === 11000) {
+    const duplicateError = new Error('Duplicate registration');
+    duplicateError.code = 'DUPLICATE_REGISTRATION';
+    throw duplicateError;
+  }
 
-    return matchesDate && matchesLocation;
-  });
+  throw error;
 }
 
-export function registerForEvent(eventId, { name, email }) {
-  const event = events.find((item) => item.id === eventId);
+export async function createEvent({ title, date, location }) {
+  return Event.create({ title, date, location });
+}
+
+export async function listEvents({ date, location } = {}) {
+  const query = {};
+
+  if (date) {
+    query.date = date;
+  }
+
+  if (location) {
+    query.location = { $regex: String(location), $options: 'i' };
+  }
+
+  return Event.find(query).sort({ createdAt: 1 });
+}
+
+export async function registerForEvent(eventId, { name, email }) {
+  if (!isValidObjectId(eventId)) {
+    const error = new Error('Event not found');
+    error.code = 'EVENT_NOT_FOUND';
+    throw error;
+  }
+
+  const event = await Event.findById(eventId);
 
   if (!event) {
     const error = new Error('Event not found');
@@ -36,32 +93,25 @@ export function registerForEvent(eventId, { name, email }) {
     throw error;
   }
 
-  const eventRegistrations = registrations.get(eventId) || [];
-  const normalizedEmail = String(email).toLowerCase();
-  const alreadyRegistered = eventRegistrations.some((registration) => registration.email === normalizedEmail);
+  try {
+    return await Registration.create({
+      eventId: event._id,
+      name,
+      email: String(email).toLowerCase(),
+    });
+  } catch (error) {
+    mapDuplicateKeyError(error);
+  }
+}
 
-  if (alreadyRegistered) {
-    const error = new Error('Duplicate registration');
-    error.code = 'DUPLICATE_REGISTRATION';
+export async function getRegistrationsForEvent(eventId) {
+  if (!isValidObjectId(eventId)) {
+    const error = new Error('Event not found');
+    error.code = 'EVENT_NOT_FOUND';
     throw error;
   }
 
-  const registration = {
-    id: randomUUID(),
-    eventId,
-    name,
-    email: normalizedEmail,
-    registeredAt: new Date().toISOString(),
-  };
-
-  eventRegistrations.push(registration);
-  registrations.set(eventId, eventRegistrations);
-
-  return registration;
-}
-
-export function getRegistrationsForEvent(eventId) {
-  const event = events.find((item) => item.id === eventId);
+  const event = await Event.findById(eventId);
 
   if (!event) {
     const error = new Error('Event not found');
@@ -69,5 +119,5 @@ export function getRegistrationsForEvent(eventId) {
     throw error;
   }
 
-  return registrations.get(eventId) || [];
+  return Registration.find({ eventId: event._id }).sort({ registeredAt: 1 });
 }

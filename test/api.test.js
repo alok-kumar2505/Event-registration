@@ -1,13 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import app from '../src/app.js';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+
+const mongoServer = await MongoMemoryServer.create();
+process.env.MONGODB_URI = mongoServer.getUri('events-api-test');
+
+const { connectDatabase, disconnectDatabase } = await import('../src/config/db.js');
+await connectDatabase(process.env.MONGODB_URI);
+
+const { default: app } = await import('../src/app.js');
 
 const server = app.listen(0);
 const { port } = server.address();
 const baseUrl = `http://127.0.0.1:${port}`;
 
 test('manages events and registrations with unique emails per event', async (t) => {
-  t.after(() => server.close());
+  t.after(async () => {
+    await new Promise((resolve) => server.close(resolve));
+    await disconnectDatabase();
+    await mongoServer.stop();
+  });
 
   const eventResponse = await fetch(`${baseUrl}/events`, {
     method: 'POST',
