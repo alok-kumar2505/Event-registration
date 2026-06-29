@@ -1,6 +1,27 @@
-# Events API Docs
+# Events API
 
-Base URL: `http://localhost:3000`
+Simple Node.js and Express API for managing events and registrations using an MVC structure.
+
+## Setup
+
+```bash
+npm install
+npm start
+```
+
+Development mode:
+
+```bash
+npm run dev
+```
+
+The server reads `PORT` from [/.env](/Users/alokkumar/Desktop/Project%202/.env). If it is not set, it falls back to `3000`.
+
+## Base URL
+
+```text
+http://localhost:3000
+```
 
 ## Routes
 
@@ -8,6 +29,7 @@ Base URL: `http://localhost:3000`
 Create a new event.
 
 Request body:
+
 ```json
 {
   "title": "Launch Party",
@@ -17,6 +39,7 @@ Request body:
 ```
 
 Success response: `201 Created`
+
 ```json
 {
   "id": "event-id",
@@ -28,6 +51,7 @@ Success response: `201 Created`
 ```
 
 Error response: `400 Bad Request`
+
 ```json
 {
   "error": "title, date, and location are required"
@@ -37,9 +61,14 @@ Error response: `400 Bad Request`
 ### GET `/events`
 List events. Optional filters: `date` and `location`.
 
-Example: `/events?date=2026-07-01&location=ber`
+Example:
+
+```text
+/events?date=2026-07-01&location=ber
+```
 
 Success response: `200 OK`
+
 ```json
 [
   {
@@ -56,6 +85,7 @@ Success response: `200 OK`
 Register a user for an event.
 
 Request body:
+
 ```json
 {
   "name": "Alex",
@@ -64,6 +94,7 @@ Request body:
 ```
 
 Success response: `201 Created`
+
 ```json
 {
   "id": "registration-id",
@@ -77,6 +108,7 @@ Success response: `201 Created`
 Error responses:
 
 `400 Bad Request`
+
 ```json
 {
   "error": "name and email are required"
@@ -84,6 +116,7 @@ Error responses:
 ```
 
 `404 Not Found`
+
 ```json
 {
   "error": "Event not found"
@@ -91,6 +124,7 @@ Error responses:
 ```
 
 `409 Conflict`
+
 ```json
 {
   "error": "User is already registered for this event"
@@ -101,6 +135,7 @@ Error responses:
 Get all registrations for an event.
 
 Success response: `200 OK`
+
 ```json
 [
   {
@@ -114,6 +149,7 @@ Success response: `200 OK`
 ```
 
 Error response: `404 Not Found`
+
 ```json
 {
   "error": "Event not found"
@@ -123,4 +159,4 @@ Error response: `404 Not Found`
 ## Notes
 
 - Data is stored in memory, so it resets when the server restarts.
-- Registration email checks are unique per event.
+- Registration emails are unique per event.
